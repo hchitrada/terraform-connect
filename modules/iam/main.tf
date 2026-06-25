@@ -208,15 +208,6 @@ resource "aws_iam_role_policy" "codebuild_connect" {
         Action = [
           "connect:*"
         ]
-        Resource = "arn:aws:connect:*:*:instance/${var.project_name}-${var.environment}*"
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "connect:ListInstances",
-          "connect:CreateInstance",
-          "connect:DescribeInstance"
-        ]
         Resource = "*"
       },
       {
