@@ -1,0 +1,22 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "play-greeting",
+  "Actions": [
+    {
+      "Identifier": "play-greeting",
+      "Type": "MessageParticipant",
+      "Parameters": {
+        "Text": "Thank you for calling the sample contact center."
+      },
+      "Transitions": {
+        "NextAction": "disconnect"
+      }
+    },
+    {
+      "Identifier": "disconnect",
+      "Type": "DisconnectParticipant",
+      "Parameters": {},
+      "Transitions": {}
+    }
+  ]
+}

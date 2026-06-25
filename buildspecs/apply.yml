@@ -1,0 +1,12 @@
+version: 0.2
+env:
+  variables:
+    TF_ENV: ""
+    AWS_REGION: ""
+phases:
+  build:
+    commands:
+      - cd application
+      - terraform init -backend-config="key=connect/${TF_ENV}/terraform.tfstate"
+      - terraform plan -var-file="env/${TF_ENV}.tfvars" -out=tfplan || { echo "Terraform plan failed"; exit 1; }
+      - terraform apply -auto-approve tfplan || { echo "Terraform apply failed"; exit 1; }
