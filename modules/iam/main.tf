@@ -222,6 +222,27 @@ resource "aws_iam_role_policy" "codebuild_connect" {
           "ds:DescribeDirectories"
         ]
         Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "iam:CreateServiceLinkedRole",
+          "iam:PutRolePolicy",
+          "iam:AttachRolePolicy"
+        ]
+        Resource = "arn:aws:iam::*:role/aws-service-role/connect.amazonaws.com/*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "iam:CreateServiceLinkedRole"
+        ]
+        Resource = "*"
+        Condition = {
+          StringEquals = {
+            "iam:AWSServiceName" = "connect.amazonaws.com"
+          }
+        }
       }
     ]
   })
