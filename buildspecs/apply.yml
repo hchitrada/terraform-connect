@@ -4,9 +4,14 @@ env:
     TF_ENV: ""
     AWS_REGION: ""
 phases:
+  install:
+    commands:
+      - yum install -y yum-utils
+      - yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+      - yum install -y terraform
   build:
     commands:
       - cd application
-      - terraform init -backend-config="key=connect/${TF_ENV}/terraform.tfstate"
+      - terraform init -backend-config="bucket=connectcc-tfstate" -backend-config="key=connect/${TF_ENV}/terraform.tfstate" -backend-config="region=${AWS_REGION}" -backend-config="dynamodb_table=connectcc-tfstate-lock"
       - terraform plan -var-file="env/${TF_ENV}.tfvars" -out=tfplan || { echo "Terraform plan failed"; exit 1; }
       - terraform apply -auto-approve tfplan || { echo "Terraform apply failed"; exit 1; }
