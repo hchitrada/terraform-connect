@@ -176,11 +176,12 @@ resource "aws_iam_role_policy" "codebuild_state_backend" {
         Action = [
           "s3:GetObject",
           "s3:PutObject",
-          "s3:ListBucket"
+          "s3:ListBucket",
+          "s3:DeleteObject"
         ]
         Resource = [
           var.state_bucket_arn,
-          "${var.state_bucket_arn}/connect/${var.environment}/*"
+          "${var.state_bucket_arn}/*"
         ]
       },
       {
