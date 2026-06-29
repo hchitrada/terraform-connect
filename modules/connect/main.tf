@@ -63,6 +63,23 @@ resource "aws_connect_phone_number" "this" {
 }
 
 # -----------------------------------------------------------------------------
+# Associate Phone Number with Contact Flow
+# -----------------------------------------------------------------------------
+
+resource "terraform_data" "phone_flow_association" {
+  triggers_replace = [
+    aws_connect_phone_number.this.id,
+    aws_connect_contact_flow.this[keys(var.contact_flow_files)[0]].contact_flow_id
+  ]
+
+  provisioner "local-exec" {
+    command = "aws connect associate-phone-number-contact-flow --phone-number-id ${aws_connect_phone_number.this.id} --instance-id ${aws_connect_instance.this.id} --contact-flow-id ${aws_connect_contact_flow.this[keys(var.contact_flow_files)[0]].contact_flow_id} --region ${data.aws_region.current.name}"
+  }
+}
+
+data "aws_region" "current" {}
+
+# -----------------------------------------------------------------------------
 # Admin User
 # -----------------------------------------------------------------------------
 
