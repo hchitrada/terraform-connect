@@ -93,6 +93,22 @@ resource "aws_iam_role_policy" "codepipeline_codebuild" {
   })
 }
 
+resource "aws_iam_role_policy" "codepipeline_sns" {
+  name = "${local.name_prefix}-codepipeline-sns-policy"
+  role = aws_iam_role.codepipeline.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "sns:Publish"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 # -----------------------------------------------------------------------------
 # CodeBuild IAM Role
 # -----------------------------------------------------------------------------
