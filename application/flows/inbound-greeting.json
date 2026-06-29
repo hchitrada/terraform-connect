@@ -6,7 +6,7 @@
       "Identifier": "play-greeting",
       "Type": "MessageParticipant",
       "Parameters": {
-        "Text": "Thank you for calling the sample contact center."
+        "Text": "Thank you for calling the Hemanth's contact center."
       },
       "Transitions": {
         "NextAction": "disconnect"

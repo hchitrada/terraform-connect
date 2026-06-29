@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# CI/CD Layer - Single Pipeline + Website Infrastructure
+# CI/CD Layer - Single Pipeline + Website Infrastructure + Flows Pipeline
 # -----------------------------------------------------------------------------
 
 module "pipeline" {
@@ -16,6 +16,29 @@ module "pipeline" {
   website_bucket    = aws_s3_bucket.website.bucket
   cloudfront_domain = aws_cloudfront_distribution.website.domain_name
 }
+
+# -----------------------------------------------------------------------------
+# Flows Pipeline (uncomment after first infra pipeline run)
+# Requires: instance IDs and flow IDs from terraform output
+# -----------------------------------------------------------------------------
+# module "flows_pipeline" {
+#   source = "../modules/flows-pipeline"
+#
+#   project_name          = var.project_name
+#   aws_region            = var.aws_region
+#   connection_arn        = var.connection_arn
+#   flows_repository_id   = "hchitrada/connect-flows"
+#   dev_instance_id       = "FILL_AFTER_FIRST_RUN"
+#   dev_contact_flow_id   = "FILL_AFTER_FIRST_RUN"
+#   prod_instance_id      = "FILL_AFTER_FIRST_RUN"
+#   prod_contact_flow_id  = "FILL_AFTER_FIRST_RUN"
+#   approval_sns_topic_arn = module.pipeline.sns_topic_arn
+#   cloudfront_domain     = aws_cloudfront_distribution.website.domain_name
+#   codebuild_role_arn    = module.pipeline.codebuild_role_arn
+#   codepipeline_role_arn = module.pipeline.codepipeline_role_arn
+#   artifact_bucket       = module.pipeline.artifact_bucket
+#   log_group_name        = module.pipeline.log_group_name
+# }
 
 # -----------------------------------------------------------------------------
 # S3 Website Bucket (Private - served via CloudFront)
