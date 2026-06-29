@@ -12,4 +12,6 @@ module "connect" {
   phone_number_type         = var.phone_number_type
   phone_number_country_code = var.phone_number_country_code
   contact_flow_files        = var.contact_flow_files
+  admin_username            = var.admin_username
+  admin_password            = data.aws_secretsmanager_secret_version.connect_admin_password.secret_string
 }

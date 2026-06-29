@@ -2,9 +2,9 @@ version: 0.2
 phases:
   install:
     commands:
-      - yum install -y yum-utils
-      - yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
-      - yum install -y terraform
+      - curl -fsSL https://releases.hashicorp.com/terraform/1.9.8/terraform_1.9.8_linux_amd64.zip -o /tmp/terraform.zip
+      - unzip -o /tmp/terraform.zip -d /usr/local/bin/
+      - terraform --version
   build:
     commands:
       - cd application

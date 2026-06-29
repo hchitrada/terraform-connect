@@ -2,22 +2,22 @@
 # CI/CD Layer - Outputs
 # -----------------------------------------------------------------------------
 
-output "dev_pipeline_arn" {
-  description = "ARN of the Development environment CodePipeline"
-  value       = module.pipeline["dev"].pipeline_arn
+output "pipeline_arn" {
+  description = "ARN of the CI/CD pipeline"
+  value       = module.pipeline.pipeline_arn
 }
 
-output "prod_pipeline_arn" {
-  description = "ARN of the Production environment CodePipeline"
-  value       = module.pipeline["prod"].pipeline_arn
+output "pipeline_name" {
+  description = "Name of the CI/CD pipeline"
+  value       = module.pipeline.pipeline_name
 }
 
-output "dev_pipeline_name" {
-  description = "Name of the Development environment CodePipeline"
-  value       = module.pipeline["dev"].pipeline_name
+output "website_url" {
+  description = "CloudFront URL for the support page"
+  value       = "https://${aws_cloudfront_distribution.website.domain_name}"
 }
 
-output "prod_pipeline_name" {
-  description = "Name of the Production environment CodePipeline"
-  value       = module.pipeline["prod"].pipeline_name
+output "website_bucket" {
+  description = "S3 bucket for website content"
+  value       = aws_s3_bucket.website.bucket
 }

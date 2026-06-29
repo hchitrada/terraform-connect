@@ -13,21 +13,16 @@ variable "aws_region" {
 }
 
 variable "connection_arn" {
-  description = "ARN of the CodeStar Connection for source repository access"
+  description = "ARN of the CodeStar Connection"
   type        = string
 }
 
 variable "repository_id" {
-  description = "Full repository identifier in owner/repo format (e.g., org/terraform-cicd-solution)"
+  description = "Full repository identifier (owner/repo)"
   type        = string
 }
 
-variable "state_bucket_name" {
-  description = "Name of the S3 bucket used for Terraform remote state storage"
-  type        = string
-}
-
-variable "lock_table_name" {
-  description = "Name of the DynamoDB table used for Terraform state locking"
+variable "approval_email" {
+  description = "Email address for pipeline approval notifications"
   type        = string
 }

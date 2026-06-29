@@ -269,6 +269,58 @@ resource "aws_iam_role_policy" "codebuild_connect" {
           "iam:GetRolePolicy"
         ]
         Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ]
+        Resource = "arn:aws:secretsmanager:*:*:secret:connectcc/*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "codepipeline_s3_deploy" {
+  name = "${local.name_prefix}-codepipeline-s3-deploy-policy"
+  role = aws_iam_role.codepipeline.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:GetBucketLocation"
+        ]
+        Resource = [
+          "arn:aws:s3:::connectcc-website",
+          "arn:aws:s3:::connectcc-website/*"
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "codebuild_s3_website" {
+  name = "${local.name_prefix}-codebuild-s3-website-policy"
+  role = aws_iam_role.codebuild.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject"
+        ]
+        Resource = [
+          "arn:aws:s3:::connectcc-website",
+          "arn:aws:s3:::connectcc-website/*"
+        ]
       }
     ]
   })

@@ -8,7 +8,7 @@ variable "project_name" {
 }
 
 variable "environment" {
-  description = "Environment name (e.g., dev, prod) used in resource naming and state isolation"
+  description = "Environment name (e.g., dev, prod)"
   type        = string
 }
 
@@ -18,7 +18,7 @@ variable "aws_region" {
 }
 
 variable "identity_management_type" {
-  description = "Identity management type for the Connect instance (SAML, CONNECT_MANAGED, or EXISTING_DIRECTORY)"
+  description = "Identity management type for the Connect instance"
   type        = string
   default     = "CONNECT_MANAGED"
 }
@@ -34,11 +34,17 @@ variable "phone_number_type" {
 }
 
 variable "phone_number_country_code" {
-  description = "ISO country code for the phone number (e.g., US, GB)"
+  description = "ISO country code for the phone number (e.g., US)"
   type        = string
 }
 
 variable "contact_flow_files" {
-  description = "Map of contact flow name to JSON file path containing the flow definition"
+  description = "Map of contact flow name to JSON file path"
   type        = map(string)
+}
+
+variable "admin_username" {
+  description = "Username for the Connect admin user"
+  type        = string
+  default     = "admin"
 }

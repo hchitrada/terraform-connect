@@ -9,7 +9,13 @@ variable "aws_region" {
 }
 
 variable "git_provider_type" {
-  description = "The type of Git provider for the CodeStar Connection (e.g., GitHub, Bitbucket, GitHubEnterpriseServer)"
+  description = "The type of Git provider for the CodeStar Connection (e.g., GitHub, Bitbucket)"
   type        = string
   default     = "GitHub"
+}
+
+variable "connect_admin_password" {
+  description = "Password for the Connect admin user"
+  type        = string
+  sensitive   = true
 }

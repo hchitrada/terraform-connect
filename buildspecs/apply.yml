@@ -12,6 +12,7 @@ phases:
   build:
     commands:
       - cd application
-      - terraform init -backend-config="bucket=connectcc-tfstate" -backend-config="key=connect/${TF_ENV}/terraform.tfstate" -backend-config="region=${AWS_REGION}" -backend-config="dynamodb_table=connectcc-tfstate-lock"
+      - terraform init
+      - terraform workspace select ${TF_ENV} || terraform workspace new ${TF_ENV}
       - terraform plan -var-file="env/${TF_ENV}.tfvars" -out=tfplan || { echo "Terraform plan failed"; exit 1; }
       - terraform apply -auto-approve tfplan || { echo "Terraform apply failed"; exit 1; }

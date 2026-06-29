@@ -74,3 +74,21 @@ resource "aws_codestarconnections_connection" "this" {
     Project = var.project_name
   }
 }
+
+# -----------------------------------------------------------------------------
+# Secrets Manager - Connect Admin Password
+# -----------------------------------------------------------------------------
+resource "aws_secretsmanager_secret" "connect_admin_password" {
+  name        = "${var.project_name}/connect-admin-password"
+  description = "Admin password for Amazon Connect instances"
+
+  tags = {
+    Name    = "${var.project_name}-connect-admin-password"
+    Project = var.project_name
+  }
+}
+
+resource "aws_secretsmanager_secret_version" "connect_admin_password" {
+  secret_id     = aws_secretsmanager_secret.connect_admin_password.id
+  secret_string = var.connect_admin_password
+}

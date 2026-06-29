@@ -12,3 +12,8 @@ output "connection_arn" {
   description = "ARN of the CodeStar Connection to the Git provider"
   value       = aws_codestarconnections_connection.this.arn
 }
+
+output "secret_arn" {
+  description = "ARN of the Secrets Manager secret for Connect admin password"
+  value       = aws_secretsmanager_secret.connect_admin_password.arn
+}

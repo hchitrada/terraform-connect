@@ -1,0 +1,21 @@
+version: 0.2
+env:
+  variables:
+    WEBSITE_BUCKET: ""
+phases:
+  install:
+    commands:
+      - yum install -y yum-utils
+      - yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+      - yum install -y terraform
+  build:
+    commands:
+      - cd application
+      - terraform init
+      - terraform workspace select dev
+      - export DEV_NUMBER=$(terraform output -raw contact_number 2>/dev/null || echo "Not deployed")
+      - terraform workspace select prod
+      - export PROD_NUMBER=$(terraform output -raw contact_number 2>/dev/null || echo "Not deployed")
+      - cd ..
+      - sed -e "s|{{DEV_PHONE}}|${DEV_NUMBER}|g" -e "s|{{PROD_PHONE}}|${PROD_NUMBER}|g" website/index.html > /tmp/index.html
+      - aws s3 cp /tmp/index.html s3://${WEBSITE_BUCKET}/index.html --content-type "text/html"
