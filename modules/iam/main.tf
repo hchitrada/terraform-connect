@@ -11,7 +11,7 @@ locals {
 # -----------------------------------------------------------------------------
 
 resource "aws_iam_role" "codepipeline" {
-  name = "${local.name_prefix}-codepipeline-role"
+  name_prefix = "${local.name_prefix}-cp-"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -114,7 +114,7 @@ resource "aws_iam_role_policy" "codepipeline_sns" {
 # -----------------------------------------------------------------------------
 
 resource "aws_iam_role" "codebuild" {
-  name = "${local.name_prefix}-codebuild-role"
+  name_prefix = "${local.name_prefix}-cb-"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"

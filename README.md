@@ -202,3 +202,75 @@ terraform destroy
 - **AWS Secrets Manager** — Credential storage
 - **AWS SNS** — Approval notifications
 - **Terraform Workspaces** — Environment isolation
+
+## Terraform Best Practices
+
+This project follows the [AWS I&A Terraform Standards](https://aws-ia.github.io/standards-terraform/):
+
+| Practice | Status |
+|----------|--------|
+| Standard file naming (`main.tf`, `variables.tf`, `outputs.tf`, `providers.tf`) | ✅ |
+| Provider blocks only in root modules | ✅ |
+| All variables have `type` and `description` | ✅ |
+| Variable validation blocks | ✅ |
+| `for_each` preferred over `count` | ✅ |
+| Attachment resources over embedded | ✅ |
+| `default_tags` in provider blocks | ✅ |
+| `name_prefix` for IAM roles | ✅ |
+| Module READMEs auto-generated via `terraform-docs` | ✅ |
+| Pre-commit hooks (fmt, validate, tflint, tfsec, terraform-docs) | ✅ |
+| Contextual resource meta names | ✅ |
+
+### Future Improvements
+
+| Practice | Status |
+|----------|--------|
+| `examples/` directory with working deployment examples | 🔲 TODO |
+| Automated tests (Terratest or `terraform test`) | 🔲 TODO |
+| Semantic versioning with Git tags | 🔲 TODO |
+
+## Pre-commit Hooks Setup
+
+Pre-commit hooks run `terraform fmt`, `validate`, `tflint`, `tfsec`, and `terraform-docs` automatically before each commit.
+
+### Installation
+
+```bash
+# Install pre-commit
+brew install pre-commit
+
+# Install terraform-docs
+brew install terraform-docs
+
+# Install tflint
+brew install tflint
+
+# Install tfsec
+brew install tfsec
+
+# Install the hooks in this repo
+pre-commit install
+```
+
+### Usage
+
+After installation, hooks run automatically on `git commit`. To run manually:
+
+```bash
+# Run all hooks on all files
+pre-commit run --all-files
+
+# Run a specific hook
+pre-commit run terraform_fmt --all-files
+pre-commit run terraform_tfsec --all-files
+```
+
+### What Each Hook Does
+
+| Hook | Purpose |
+|------|---------|
+| `terraform_fmt` | Formats all `.tf` files consistently |
+| `terraform_validate` | Checks for syntax and configuration errors |
+| `terraform_tflint` | Lints for AWS best practices and deprecated features |
+| `terraform_tfsec` | Scans for security misconfigurations (unencrypted resources, overly permissive IAM) |
+| `terraform_docs` | Auto-generates module READMEs from variables and outputs |
