@@ -1,193 +1,204 @@
 # Terraform CI/CD Solution for Amazon Connect
 
-A Terraform-based CI/CD solution that provisions AWS CodePipeline and CodeBuild to automate the deployment of an Amazon Connect contact center across multiple isolated environments.
+An end-to-end infrastructure-as-code solution that uses Terraform to provision AWS CodePipeline and CodeBuild, automating the deployment of an Amazon Connect contact center across two environments (Development and Production).
 
-## Project Summary
+## Architecture
 
-This solution demonstrates end-to-end infrastructure-as-code practices by using Terraform to create both the CI/CD pipeline infrastructure and the Amazon Connect instance with associated contact flows. Engineers update Connect flows in the source repository, commit changes, and the pipeline automatically deploys updates to the target environment.
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          connectcc-pipeline                                  │
+│                                                                             │
+│  Source ─→ Validate ─→ Build-Dev ─→ Deploy-Website-Dev ─→ Approval         │
+│  (main)    (fmt+val)   (tf apply)   (HTML + dev number)   (email)           │
+│                                                              │              │
+│                                         ┌────────────────────┘              │
+│                                         ▼                                   │
+│                                    Build-Prod ─→ Deploy-Website              │
+│                                    (tf apply)    (HTML + both numbers)       │
+└─────────────────────────────────────────────────────────────────────────────┘
 
-The final output is a functional sample contact center with contact numbers associated with deployed flows.
-
-### Key Features
-
-- Fully automated deployments triggered by Git commits
-- Two isolated environments: Development (`develop` branch) and Production (`main` branch)
-- Separate Terraform state per environment preventing cross-environment contamination
-- Least-privilege IAM roles scoped to specific resources
-- Validation stage (format check + validate) that halts the pipeline on failure
-- Reusable Terraform modules for pipeline, Connect, and IAM resources
-
-## Architecture Overview
-
-The solution is organized into three layers:
-
-| Layer | Purpose | Applied By |
-|-------|---------|------------|
-| **Bootstrap** | Remote state backend (S3 + DynamoDB) and CodeStar Connection | Manual, once per account |
-| **CI/CD** | Pipeline infrastructure (CodePipeline, CodeBuild, artifact bucket, IAM) | Manual or pipeline |
-| **Application** | Amazon Connect instance, contact flows, phone numbers | Pipeline (automated) |
-
-### System Architecture
-
-```mermaid
-graph TB
-    subgraph Git["Git Repository"]
-        DEV_BRANCH["develop branch"]
-        MAIN_BRANCH["main branch"]
-    end
-
-    subgraph AWS["AWS Account"]
-        CSC["CodeStar Connection"]
-
-        subgraph DevPipe["Development Pipeline"]
-            DP_SRC["Source Stage"]
-            DP_VAL["Validate Stage<br/>fmt -check + validate"]
-            DP_APP["Apply Stage<br/>init + plan + apply"]
-        end
-
-        subgraph ProdPipe["Production Pipeline"]
-            PP_SRC["Source Stage"]
-            PP_VAL["Validate Stage"]
-            PP_APP["Apply Stage"]
-        end
-
-        ART["S3 Artifact Bucket<br/>(SSE enabled)"]
-
-        subgraph StateBackend["State Backend"]
-            S3STATE["S3 State Bucket"]
-            DDB["DynamoDB Lock Table"]
-        end
-
-        subgraph DevEnv["Development Environment"]
-            DEV_CONNECT["Connect Instance (dev)"]
-            DEV_FLOW["Contact Flow"]
-            DEV_NUM["Contact Number"]
-        end
-
-        subgraph ProdEnv["Production Environment"]
-            PROD_CONNECT["Connect Instance (prod)"]
-            PROD_FLOW["Contact Flow"]
-            PROD_NUM["Contact Number"]
-        end
-    end
-
-    DEV_BRANCH -->|push| CSC --> DP_SRC
-    MAIN_BRANCH -->|push| CSC --> PP_SRC
-    DP_SRC --> DP_VAL --> DP_APP
-    PP_SRC --> PP_VAL --> PP_APP
-    DP_SRC -.artifacts.-> ART
-    PP_SRC -.artifacts.-> ART
-    DP_APP -->|terraform apply| DEV_CONNECT
-    PP_APP -->|terraform apply| PROD_CONNECT
-    DP_APP <-->|state: env/dev| S3STATE
-    PP_APP <-->|state: env/prod| S3STATE
-    S3STATE --- DDB
-    DEV_CONNECT --> DEV_FLOW --> DEV_NUM
-    PROD_CONNECT --> PROD_FLOW --> PROD_NUM
+┌──────────────────┐     ┌──────────────────┐     ┌──────────────────────┐
+│  Dev Environment │     │ Prod Environment │     │   Website (S3+CF)    │
+├──────────────────┤     ├──────────────────┤     ├──────────────────────┤
+│ Connect Instance │     │ Connect Instance │     │ CloudFront CDN       │
+│ Contact Flow     │     │ Contact Flow     │     │ Private S3 Bucket    │
+│ Phone Number     │     │ Phone Number     │     │ Support page HTML    │
+│ Admin User       │     │ Admin User       │     │ (shows both numbers) │
+└──────────────────┘     └──────────────────┘     └──────────────────────┘
 ```
 
-### Deployment Flow
+## How It Works
 
-1. Engineer pushes code to `develop` or `main` branch
-2. CodeStar Connection triggers the corresponding CodePipeline
-3. **Validate Stage** — runs `terraform fmt -check` and `terraform validate`; halts on failure
-4. **Apply Stage** — runs `terraform init`, `terraform plan`, and `terraform apply`
-5. Amazon Connect resources are created/updated in the target environment
-
-### Resource Naming Convention
-
-All resources follow the pattern: `<project>-<environment>-<resource_type>-<identifier>`
-
-Example: `connectcc-dev-pipeline-deploy`
+1. **You push code** to the `main` branch of this repository
+2. **CodePipeline triggers** automatically via CodeStar Connection
+3. **Validate stage** runs `terraform fmt -check` and `terraform validate`
+4. **Build-Dev stage** runs `terraform apply` using the `dev` workspace — creates/updates the Connect instance, flow, phone number, and admin user for development
+5. **Deploy-Website-Dev** generates an HTML page showing the dev phone number and uploads it to S3 (served via CloudFront)
+6. **Approval stage** sends you an email with a link to the website — you dial the dev number to test, then approve
+7. **Build-Prod stage** runs `terraform apply` using the `prod` workspace — same resources for production
+8. **Deploy-Website** regenerates the HTML with both phone numbers
 
 ## Repository Structure
 
 ```
-.
-├── README.md                 # This file
-├── bootstrap/                # One-time setup: state backend + CodeStar Connection
-├── cicd/                     # CI/CD layer: pipelines, CodeBuild, IAM
-├── application/              # Application layer: Connect instance, flows, numbers
-│   └── flows/                # Contact flow JSON definitions
+├── bootstrap/              # One-time setup: S3, DynamoDB, CodeStar, Secrets Manager
+├── cicd/                   # Pipeline infrastructure: CodePipeline, CodeBuild, CloudFront, S3
+├── application/            # Connect resources: instance, flows, phone numbers, admin user
+│   ├── env/
+│   │   ├── dev.tfvars      # Dev environment config
+│   │   └── prod.tfvars     # Prod environment config
+│   └── flows/
+│       └── inbound-greeting.json  # Initial flow definition
 ├── modules/
-│   ├── pipeline/             # Reusable pipeline module
-│   ├── connect/              # Reusable Connect module
-│   └── iam/                  # Reusable IAM module
-├── buildspecs/               # CodeBuild buildspec files (validate + apply)
-└── docs/                     # Detailed documentation
+│   ├── connect/            # Reusable Connect module
+│   ├── pipeline/           # Reusable pipeline module
+│   ├── iam/                # Least-privilege IAM roles
+│   └── flows-pipeline/     # Flows-only deployment pipeline (for connect-flows repo)
+├── buildspecs/
+│   ├── validate.yml        # terraform fmt + validate
+│   ├── apply.yml           # terraform init + workspace + plan + apply
+│   ├── website-dev.yml     # Generate HTML with dev number, upload to S3
+│   └── website.yml         # Generate HTML with both numbers, upload to S3
+└── website/
+    └── index.html          # HTML template for the support page
 ```
 
 ## Prerequisites
 
-Before deploying this solution, ensure you have:
+- AWS account with admin access
+- Terraform >= 1.0 installed locally
+- AWS CLI configured
+- GitHub account with a repository for this code
+- Git installed
 
-- **AWS Account** with permissions to create CodePipeline, CodeBuild, S3, DynamoDB, IAM, and Amazon Connect resources
-- **Terraform** >= 1.5.0 installed ([download](https://developer.hashicorp.com/terraform/downloads))
-- **AWS CLI** v2 configured with credentials for the target account ([install guide](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html))
-- **Git** installed and configured with access to the source repository
-- A **GitHub** (or supported Git provider) account for the CodeStar Connection
+## Deployment Guide
 
-## Quick Start
+### Step 1: Bootstrap (one-time)
 
-### 1. Clone the Repository
-
-```bash
-git clone <repository-url>
-cd terraform-cicd-solution
-```
-
-### 2. Bootstrap the State Backend
+Creates the S3 state bucket, DynamoDB lock table, CodeStar Connection, and stores the Connect admin password in Secrets Manager.
 
 ```bash
 cd bootstrap
+
+# Create terraform.tfvars with your values:
+cat > terraform.tfvars << 'EOF'
+project_name           = "connectcc"
+aws_region             = "us-east-1"
+git_provider_type      = "GitHub"
+connect_admin_password = "YourSecurePassword1!"
+EOF
+
 terraform init
 terraform apply
 ```
 
-This creates the S3 state bucket, DynamoDB lock table, and CodeStar Connection. After apply, complete the CodeStar Connection handshake in the AWS Console (one-time manual step).
+Note the `connection_arn` output — you'll need it next.
 
-### 3. Deploy CI/CD Infrastructure
+### Step 2: Complete CodeStar Connection Handshake
+
+1. Go to AWS Console → Developer Tools → Settings → Connections
+2. Click on `connectcc-codestar-connection` (status: Pending)
+3. Click **Update pending connection**
+4. Authorize AWS to access your GitHub account
+5. Install the connector on your repository
+
+### Step 3: Deploy CI/CD Layer
+
+Creates the pipeline, CodeBuild projects, CloudFront distribution, and website bucket.
 
 ```bash
-cd ../cicd
+cd cicd
+
+# Update cicd/env/dev.tfvars with the connection_arn from Step 1
+# Then:
 terraform init
-terraform apply -var-file="env/dev.tfvars"   # Development pipeline
-terraform apply -var-file="env/prod.tfvars"  # Production pipeline
+terraform apply -var-file="env/dev.tfvars"
 ```
 
-### 4. Trigger Deployments via Git
+Note the `website_url` output — this is your support page URL.
 
-Once the pipelines are provisioned:
-
-- Push to `develop` branch → deploys to Development environment
-- Push to `main` branch → deploys to Production environment
-
-The pipeline will automatically validate and apply the application layer Terraform, provisioning the Amazon Connect instance, contact flows, and phone numbers.
-
-### 5. Verify Deployment
-
-After a successful pipeline run, check the Terraform outputs:
+### Step 4: Push Code to GitHub
 
 ```bash
-cd ../application
-terraform output connect_instance_id
-terraform output contact_number
+git add -A
+git commit -m "Deploy infrastructure"
+git push origin main
 ```
 
-## Documentation
+The pipeline triggers automatically and deploys:
+- Dev Connect instance + flow + phone number + admin user
+- HTML support page with the dev phone number
 
-For detailed documentation, see the [docs/](docs/) directory:
+### Step 5: Approve Production Deployment
 
-| Document | Description |
-|----------|-------------|
-| [Architecture](docs/architecture.md) | Solution architecture with diagrams |
-| [Code Structure](docs/code-structure.md) | Terraform code organization and design decisions |
-| [Environment Strategy](docs/environment-strategy.md) | Environment isolation and state separation |
-| [CI/CD Workflow](docs/cicd-workflow.md) | Pipeline stages, triggers, and buildspec logic |
-| [Deployment Guide](docs/deployment-guide.md) | Step-by-step deployment instructions |
-| [Troubleshooting](docs/troubleshooting.md) | Common issues and resolution steps |
-| [FAQ](docs/faq.md) | Frequently asked questions |
+1. Check your email for the approval notification (or go to CodePipeline in the console)
+2. Click the CloudFront URL to see the dev phone number
+3. Dial the number to verify the flow works
+4. Approve the pipeline to deploy production
 
-## License
+## Updating Contact Flows
 
-This project is provided as a sample solution for demonstration purposes.
+Contact flows use `ignore_changes = [content]` in Terraform, so flow updates are decoupled from infrastructure changes.
+
+**Option A: AWS CLI (immediate)**
+```bash
+aws connect update-contact-flow-content \
+  --instance-id <instance-id> \
+  --contact-flow-id <flow-id> \
+  --content file://application/flows/inbound-greeting.json \
+  --region us-east-1
+```
+
+**Option B: Flows Pipeline (automated)**
+
+A separate `connect-flows` repo exists at `hchitrada/connect-flows`. Once the flows pipeline is wired up, pushing flow JSON changes to that repo auto-deploys to dev, waits for approval, then deploys to prod.
+
+## Connect Login
+
+After deployment:
+- **URL:** `https://<instance-alias>.my.connect.aws`
+- **Username:** `admin`
+- **Password:** stored in Secrets Manager at `connectcc/connect-admin-password`
+
+## Environment Isolation
+
+- Uses **Terraform workspaces** (`dev` and `prod`)
+- Each workspace has its own state file in S3: `env:/dev/connect/terraform.tfstate`
+- Separate Connect instances, phone numbers, and flows per environment
+- Single pipeline with approval gate between environments
+
+## Teardown
+
+Destroy in reverse order:
+
+```bash
+# 1. Destroy application (both workspaces)
+cd application
+terraform init
+terraform workspace select dev
+terraform destroy -var-file="env/dev.tfvars"
+terraform workspace select prod
+terraform destroy -var-file="env/prod.tfvars"
+
+# 2. Destroy CI/CD
+cd ../cicd
+terraform destroy -var-file="env/dev.tfvars"
+
+# 3. Empty and destroy bootstrap
+aws s3 rm s3://connectcc-tfstate --recursive
+cd ../bootstrap
+terraform destroy
+```
+
+## Key Technologies
+
+- **Terraform** — Infrastructure as Code
+- **AWS CodePipeline** — CI/CD orchestration
+- **AWS CodeBuild** — Build/deploy execution
+- **Amazon Connect** — Cloud contact center
+- **AWS CloudFront** — CDN for the support page
+- **AWS S3** — State storage, artifacts, website hosting
+- **AWS DynamoDB** — Terraform state locking
+- **AWS Secrets Manager** — Credential storage
+- **AWS SNS** — Approval notifications
+- **Terraform Workspaces** — Environment isolation
